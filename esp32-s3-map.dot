@@ -1,0 +1,121 @@
+digraph {
+  compound=true;
+  nodesep=0.3;
+  labelloc="t";
+  remincross=true;
+  rankdir="LR";
+  splines=line;
+  fontsize=25;
+  node [fontsize=18];
+
+  subgraph cluster_application_startup_flow {
+    rank=same;
+    label="Application Startup Flow";
+    node [style=filled];
+    color=red;
+
+    node [shape=box, color=palevioletred1];
+
+    "First stage (ROM) bootloader";
+    "Second Stage Bootloader";
+    "Application Startup" [label=<Application Startup<BR />
+      <FONT POINT-SIZE="14">1. Port initialization of hardware and basic C runtime environment.</FONT><BR />
+      <FONT POINT-SIZE="14">2. System initialization of software services and FreeRTOS.</FONT><BR />
+      <FONT POINT-SIZE="14">3. Running the main task and calling app_main.</FONT>>];
+
+    edge [color=firebrick4, fontcolor=firebrick4];
+
+    "First stage (ROM) bootloader" -> "Second Stage Bootloader" [
+      label="Checks and loads the second stage bootloader"];
+    "Second Stage Bootloader" -> "Application Startup" [
+      label="Transfer management to the image"];
+  }
+
+  subgraph cluster_memory_map {
+    rank=same;
+    label="Memory map";
+    node [style=filled];
+    color=green;
+
+    node [shape=box, color=palegreen1];
+
+    "ROM" [label=<ROM<BR />
+      <FONT POINT-SIZE="14">baked during the manufacturing process and cannot be changed</FONT>>];
+
+    "SRAM" [label=<SRAM<BR />
+      <FONT POINT-SIZE="14">There are three internal SRAM modules</FONT>>];
+
+    "RTC-SRAM" [label=<RTC-SRAM<BR />
+      <FONT POINT-SIZE="14">RTC-Slow and RTC-Fast are r/w memory</FONT>>];
+
+    "Peripheral registers" [label=<Peripheral registers<BR />
+      <FONT POINT-SIZE="14">Each peripheral module has its own memory boundaries given by its base address and block size</FONT>>];
+
+    "EFUSE" [label=<EFUSE<BR />
+      <FONT POINT-SIZE="14">4096 bits of one-time-programmable memory where hardware and encryption settings are stored</FONT>>];
+  }
+
+  subgraph cluster_partition_table {
+    rank=same;
+    label="Partition Table";
+    node [style=filled];
+    color=gold;
+
+    node [shape=box, color=palegoldenrod];
+
+    "Type data";
+    "Type app";
+    "Type bootloader"
+    "Type partition_table"
+
+    "data SubType nvs";
+    "data SubType nvs_keys";
+    "data SubType ota";
+    "data SubType phy";
+    "app SubType factory";
+    "app SubType ota_n";
+    "bootloader SubType primary"
+    "bootloader SubType ota"
+    "bootloader SubType recovery"
+    "partition_table SubType primary"
+    "partition_table SubType ota"
+
+
+    edge [color=darkgoldenrod4, fontcolor=darkgoldenrod4];
+
+    "Type app" -> { "app SubType factory", "app SubType ota_n"};
+    "Type data" -> { "data SubType nvs",
+                     "data SubType nvs_keys",
+                     "data SubType ota",
+                     "data SubType phy"};
+    "Type bootloader" -> { "bootloader SubType primary",
+                           "bootloader SubType ota",
+                           "bootloader SubType recovery"};
+    "Type partition_table" -> { "partition_table SubType primary",
+                                "partition_table SubType ota"};
+    
+  }
+
+
+
+
+  edge [style=solid, arrowhead=normal, dir=back, penwidth=1.5];
+
+  edge [color=darkgreen, fontcolor=darkgreen];
+  "ROM":e  -> "First stage (ROM) bootloader":w [label="Execute reset vector code"];
+  "EFUSE":e  -> "First stage (ROM) bootloader":w [
+    label="May configure SPI flash based on EFUSE values"];
+
+  "SRAM":e  -> "Second Stage Bootloader":w [label="Resides at offset 0x0"];
+  "SRAM":e  -> "Second Stage Bootloader":w [label="Loads app image to RAM"];
+
+
+
+
+
+  "Type app":e  -> "Second Stage Bootloader":w [
+    label="Select the app partition to boot",
+    color=darkorange3,
+    fontcolor=darkorange3];
+
+}
